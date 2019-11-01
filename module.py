@@ -2,9 +2,12 @@ from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn import svm
 
-import numpy as np
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
+
+from sklearn.model_selection import train_test_split
+
+import pandas as pd
 
 class create_model_split():
 
@@ -12,10 +15,11 @@ class create_model_split():
         self.y_train = y_train
         self.y_test = y_test
         model = RandomForestRegressor(n_estimators=100)        
-        y_test_pred, y_train_pred = self._create_model_split(x_train,x_test,y_train,y_test, model)
+        y_test_pred, y_train_pred, model = self._create_model_split(x_train,x_test,y_train,y_test, model)
 
         self.y_test_pred = y_test_pred
         self.y_train_pred = y_train_pred
+        self.model = model
 
     def _create_model_split(self, x_train,x_test,y_train,y_test, model):
         model1 = model
@@ -25,7 +29,7 @@ class create_model_split():
         y_train_pred = model1.predict(x_train)
         #y_train_ = y_train.values.tolist()
 
-        return y_test_pred, y_train_pred
+        return y_test_pred, y_train_pred, model1
 
     def _get_r2_score(self):
         return r2_score(self.y_test,self.y_test_pred), r2_score(self.y_train,self.y_train_pred)
@@ -96,3 +100,56 @@ def accuracy(y_test, y_pred):
     str_prob = str(metrics.accuracy_score(testUpDown, predUpDown)*100)
     prob = metrics.accuracy_score(testUpDown, predUpDown)
     return str_prob, prob
+
+def exe_ml(x,y):
+
+    #2-1: train_test_splitによるモデル評価
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, 
+        y, 
+        test_size=0.3,
+        random_state=0 #モデルの精度向上を検証するためランダムシードは一定とする
+    )
+
+    #train_test_split
+    cms = create_model_split(x_train,x_test,y_train,y_test)
+    model = cms.model
+    y_test_pred = cms.y_test_pred
+    split_probability, _ = accuracy(y_test, y_test_pred)
+    y_train_pred = cms.y_train_pred
+    
+    test_df = pd.DataFrame(
+        {
+            'y_test_pred': y_test_pred,
+            'y_test': y_test.tolist(),     
+        }
+    )
+    
+    train_df = pd.DataFrame(
+        {
+            'y_train_pred': y_train_pred,
+            'y_train': y_train.tolist(),
+            #'x_train': x_train.values,     
+        }
+        #index=y_train.index
+    )
+
+    #return model, split_probability,y_test_df, y_train_df
+    return model, split_probability,test_df,train_df, x_test, x_train
+    
+    #plotter(y_train_pred,y_train,y_test_pred,y_test)
+
+
+    """
+    r2_test,r2_train = cms._get_r2_score()
+    rmse_test,rmse_train = cms._get_rmse()
+
+    #2-2: 交差検証（K-fold)によるモデル評価
+    cmCV = create_model_cv(x,y)
+    test_R2_scores,test_RMSE_Scores = cmCV.get_test_res()
+    train_R2_scores,train_RMSE_Scores = cmCV.get_train_res()
+    #print(test_R2_scores)
+    #print(train_R2_scores)
+
+    """
+    
