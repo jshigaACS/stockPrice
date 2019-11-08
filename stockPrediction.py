@@ -140,26 +140,55 @@ y = train_df[y_val]
 model, probability, test_df, train_df, x_test, x_train = module.exe_ml(x, y)
 
 #実数と予測データの比較グラフ
-#compare_view(y_test_df)
+#compare_view(test_df)
 
 #効果的なパラメータ描画
-feature_imp = pd.Series(model.feature_importances_, index=x_val).sort_values(ascending=False)
-feature_view(feature_imp)
+#feature_imp = pd.Series(model.feature_importances_, index=x_val).sort_values(ascending=False)
+#feature_view(feature_imp)
 
 #正確性
 pred = test_df['y_test_pred']
 test = test_df['y_test']
-accuracy = module.accuracy(test,pred)#print(accuracy)
+accuracy = module.accuracy(test,pred)
+print(accuracy)
 
 """
 4. パラメータ調整
     4-1: 標準化: StandardScaler
     4-2: 正規化: MinMAxScaler
     4-3: 標準化（外れ値に強い）: RobustScaler
-    4-4: 対数変換
-    4-3: grid-search
-    4-n: パラメータ選択方法
+    　→ランダムフォレスト：Scalerの効果なし
+    　→SVR回帰：効果あり
+    4-3: grid-search パラメータ最適
 
 """
-scalers_score = compare_scaler(x,y)
-print(scalers_score)
+#scalers_score = compare_scaler(x,y)
+#print(scalers_score)
+
+"""
+5. 主成分分析
+    5-1: PCAにより寄与率の高い主成分のみを説明変数に使う
+    →第4第5主成分までで90％
+    5-2: 第4主成分までだけで学習
+"""
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+pca = PCA()
+feature = pca.fit_transform(x)
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+
+pca_pipline = Pipeline(
+    [
+        ('decomposition', PCA(n_components=5)),
+        ('model',RandomForestRegressor(n_estimators=1000))
+    ]
+)
+
+pca_pipline.fit(x_train,train_df['y_train'])
+y_pred_pi = pca_pipline.predict(x_test)
+#print(pca_pipline.score(x_train,train_df['y_train']))
+#print(pca_pipline.score(test_df['y_test'],y_pred_pi))
+accuracy = module.accuracy(test_df['y_test'],y_pred_pi)
+print(accuracy)
+
+#pipline.score ランダムフォレスト回帰

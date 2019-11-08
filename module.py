@@ -1,6 +1,6 @@
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn import svm
+from sklearn.svm import SVR
 
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
@@ -14,7 +14,8 @@ class create_model_split():
     def __init__(self, x_train,x_test,y_train,y_test):
         self.y_train = y_train
         self.y_test = y_test
-        model = RandomForestRegressor(n_estimators=100)        
+        model = RandomForestRegressor(n_estimators=100)
+        #model = SVR(kernel='rbf', C=1e3, gamma=0.1)
         y_test_pred, y_train_pred, model = self._create_model_split(x_train,x_test,y_train,y_test, model)
 
         self.y_test_pred = y_test_pred
