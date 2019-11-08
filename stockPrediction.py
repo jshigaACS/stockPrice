@@ -149,9 +149,12 @@ model, probability, test_df, train_df, x_test, x_train = module.exe_ml(x, y)
 #正確性
 pred = test_df['y_test_pred']
 test = test_df['y_test']
+from sklearn.metrics import r2_score
+from sklearn.metrics import mean_squared_error
 accuracy = module.accuracy(test,pred)
 print(accuracy)
-
+print(r2_score(test,pred))
+print(mean_squared_error(test,pred))
 """
 4. パラメータ調整
     4-1: 標準化: StandardScaler
@@ -176,19 +179,38 @@ from sklearn.pipeline import Pipeline
 pca = PCA()
 feature = pca.fit_transform(x)
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
+
+model = SVR(kernel='rbf', C=1e3, gamma=0.001)
 
 pca_pipline = Pipeline(
     [
         ('decomposition', PCA(n_components=5)),
-        ('model',RandomForestRegressor(n_estimators=1000))
+        ('sc', StandardScaler()),
+        #('model',RandomForestRegressor(n_estimators=1000,max_depth=5))
+        ('model', model)
     ]
 )
 
+#plt.figure()
 pca_pipline.fit(x_train,train_df['y_train'])
 y_pred_pi = pca_pipline.predict(x_test)
 #print(pca_pipline.score(x_train,train_df['y_train']))
-#print(pca_pipline.score(test_df['y_test'],y_pred_pi))
 accuracy = module.accuracy(test_df['y_test'],y_pred_pi)
 print(accuracy)
+print(r2_score(test_df['y_test'],y_pred_pi))
+print(mean_squared_error(test_df['y_test'],y_pred_pi))
+#plt.plot(test_df['y_test'])
+#plt.plot(y_pred_pi)
 
-#pipline.score ランダムフォレスト回帰
+"""
+6. gridserch
+    6-1: importance_feature
+    6-2: standard scaler
+    6-3: pca
+    6-4: 交差検証
+    6-4: svr
+"""
+
+

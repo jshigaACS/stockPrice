@@ -14,7 +14,7 @@ class create_model_split():
     def __init__(self, x_train,x_test,y_train,y_test):
         self.y_train = y_train
         self.y_test = y_test
-        model = RandomForestRegressor(n_estimators=100)
+        model = RandomForestRegressor(n_estimators=1000)
         #model = SVR(kernel='rbf', C=1e3, gamma=0.1)
         y_test_pred, y_train_pred, model = self._create_model_split(x_train,x_test,y_train,y_test, model)
 
@@ -108,7 +108,7 @@ def exe_ml(x,y):
     x_train, x_test, y_train, y_test = train_test_split(
         x, 
         y, 
-        test_size=0.3,
+        test_size=0.2,
         random_state=0 #モデルの精度向上を検証するためランダムシードは一定とする
     )
 
