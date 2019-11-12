@@ -125,7 +125,6 @@ def exe_ml(x,y):
             'y_test': y_test.tolist(),     
         }
     )
-    
     train_df = pd.DataFrame(
         {
             'y_train_pred': y_train_pred,
