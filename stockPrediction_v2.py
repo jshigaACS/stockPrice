@@ -7,7 +7,9 @@ import numpy as np
 
 """
 変更点：目的変数を「偏差値」,
-        説明変数に「曜日」を追加
+        説明変数に以下を追加
+        「曜日」,[決算翌日フラグ], [長期休暇翌日フラグ]
+
 """
 
 plt.rcParams['figure.figsize'] = (15.0, 15.0)
@@ -18,7 +20,7 @@ def read_csv2df():
     import pandas as pd
 
     dirpath = '/home/ubuntu/analysis/stockPrice/'
-    csv_name = 'stockPriceData_dev_val.csv'
+    csv_name = 'stockPriceData_dev_val_v2.csv'
 
     df = pd.read_csv(dirpath+csv_name)
     return df
@@ -119,13 +121,21 @@ def compare_scaler(x,y):
         #print(str(scaler)+': '+score[1])
     return scores
 
+def del_out_val(y_df):
+    av = np.mean(y)
+    sd = np.std(y)
+    out_min = av - (sd)*3
+    out_max = av + (sd)*3
+    y[y < out_min] = av
+    y[y > out_max] = av
 
-
+    return y
 
 """
 1. 前準備
     1-1: Load CSV
     1-2: setting
+        m+-3sdの値だけ除外する
 """
 #1-1
 train_df = read_csv2df()#train_df.hist()
@@ -138,7 +148,7 @@ y_val, nonNeedCol, x_val = setting(train_df)
 x = train_df[x_val]
 y = train_df[y_val]
 
-#print(x.columns)
+y = del_out_val(y)#print(x.columns)
 
 """
 2. 事前調査
@@ -217,7 +227,14 @@ print("精度 =", gridS.best_score_)
     6-3: pca_n
     6-4: 交差検証
     6-4: SVR
+model_name: rf
+最適なパラメーター = {'rf__min_samples_split': 20, 'rf__max_depth': 30, 'rf__n_estimators': 300, 'pca__n_components': 3, 'rf__random_state': 0}
+精度 = 0.1847401785215227
 
+model_name: svr
+scaler: ss
+最適なパラメーター = {'svm__C': 100, 'pca__n_components': 9, 'svm__kernel': 'sigmoid', 'svm__gamma': 0.01}
+精度 = 0.2936551740521136
 """
 from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
@@ -252,11 +269,17 @@ def select_model(model,scaler):
                 ('svm',svr),
             ]
         )
+        #svm__epsilons=2**np.arange(-10, 1, dtype=float)
+        #svm__gamma=2**np.arange(-20, 11, dtype=float)
+        #svm__C=2**np.arange(-5, 11, dtype=float)
         params_svr = {
-            "pca__n_components":[i for i in range(1, 7)],
-            "svm__kernel":['rbf','poly','sigmoid'],
-            "svm__gamma":[10**i for i in range(-4,0)],
-            "svm__C":[10**i for i in range(1,4)],
+            "pca__n_components":[i for i in range(1, len(x2.columns))],#len(x2.columns))],
+            "svm__kernel":['rbf','sigmoid'],
+            "svm__gamma":[10**i for i in range(-4,3)],
+            "svm__C":[10**i for i in range(0,4)],
+            #"svm__epsilons":svm__epsilons.tolist(),
+            #"svm__gamma":svm__gamma.tolist(),
+            #"svm__C":svm__C.tolist(),
         }
 
         return pip_svm, params_svr
@@ -271,13 +294,13 @@ def select_model(model,scaler):
             ]
         )
         params_rf = {
-            "pca__n_components":[7],
-            'rf__n_estimators'      : [50],# 100],#, 300],,
-            'rf__max_features'      : [i for i in range(1,7)],
+            "pca__n_components":[i for i in range(1, 10)],
+            'rf__n_estimators'      : [300],#,500,1000],#[50, 100, 300],
+            #'rf__max_features'      : [i for i in range(1,len(x2.columns))],
             'rf__random_state'      : [0],
-            'rf__n_jobs'            : [-1],
-            #'rf__min_samples_split' : [3, 5, 10, 15, 20, 25, 30, 40, 50, 100],
-            'rf__max_depth'         : [30]#[30, 40, 50]#, 100]
+            #'rf__n_jobs'            : [-1],
+            'rf__min_samples_split' : [20],
+            'rf__max_depth'         : [30]
         }
         return pip_rf, params_rf
 
@@ -312,7 +335,7 @@ def median_absolute_error_rate(y_true, y_pred):
 
 
 #main処理
-models = ['rf']#['svr']#['rf']#['svr','rf']
+models = ['svr']# ['rf']#['svr']#['rf']#['svr']#['rf']#['svr','rf']
 
 from sklearn.metrics.scorer import make_scorer
 
@@ -327,18 +350,21 @@ for model in models:
             else:
                 s = RobustScaler()
 
+            my_scorer = make_scorer(calc_score, greater_is_better=True)
+
             pip, params = select_model(model, s)
             gridS = GridSearchCV(
-            pip, param_grid=params,
-            scoring="r2",
-            #scoring=score,
-            #scoring=my_scorer,
-            return_train_score=False,
-            cv=2
+                pip, param_grid=params,
+                #scoring="r2",
+                #scoring=score,
+                scoring=my_scorer,
+                return_train_score=False,
+                cv=2
             )
 
             gridS.fit(x_train,y_train)
             print("model_name: "+model)
+            print('scaler: '+scaler)
             print("最適なパラメーター =", gridS.best_params_)
             print("精度 =", gridS.best_score_)
 
@@ -364,9 +390,7 @@ for model in models:
         print("精度 =", gridS.best_score_)
         #print(gridS.best_estimator_)
         #print(gridS.cv_results_)
-"""
-7.optuna
-"""
+
 #GridSearchCV()
 
 """
